@@ -10,9 +10,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{47D74859-AFD8-4D7D-A8CC-DEE1D4FD5DE6}"
 	ProjectSection(SolutionItems) = preProject
 		readme.md = readme.md
+		words.txt = words.txt
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinformsTestApp", "WinformsTestApp\WinformsTestApp.csproj", "{70534992-9BEE-48B2-A2C0-549FC1750FD9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinformsTestApp", "WinformsTestApp\WinformsTestApp.csproj", "{70534992-9BEE-48B2-A2C0-549FC1750FD9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

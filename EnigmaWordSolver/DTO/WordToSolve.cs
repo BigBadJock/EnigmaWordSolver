@@ -11,6 +11,8 @@
         }
 
         public string CodedWord { get; set; }
+
+        public string UncodedWord { get; set; }
         public int PossibleMatches { get; set; }
 
         public string PossibleWord { get; set; }

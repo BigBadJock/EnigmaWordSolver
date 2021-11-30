@@ -111,6 +111,8 @@ namespace EnigmaWordSolver
 
             bool result = await solver.Solve();
 
+            this.givenValues = solver.GivenValues;
+
             return result;
         }
 

@@ -1,12 +1,13 @@
 using EnigmaWordSolver;
+using System.Text;
 
 namespace WinformsTestApp
 {
     public partial class Form1 : Form
     {
-        private readonly EnigmaWord enigmaWord;
+        private readonly IEnigmaWord enigmaWord;
 
-        public Form1(EnigmaWord enigmaWord)
+        public Form1(IEnigmaWord enigmaWord)
         {
             InitializeComponent();
             this.enigmaWord = enigmaWord ?? throw new ArgumentNullException(nameof(enigmaWord));
@@ -14,25 +15,63 @@ namespace WinformsTestApp
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            string key = textBox2.Text;
-            string value = textBox3.Text;
+            string key = txtKey.Text;
+            string value = txtValue.Text;
 
             enigmaWord.GivenValues.Add(int.Parse(key), value);
+
+            StringBuilder sb = new StringBuilder();
+            sb.Clear();
+            enigmaWord.GivenValues.ToList().ForEach(x =>
+            {
+                sb.AppendLine($"{x.Key}-{x.Value}");
+            });
+            txtGivenValues.Text = sb.ToString();
+
+
         }
 
         private void btnSolve_Click(object sender, EventArgs e)
         {
             enigmaWord.WordsToSolve.Clear();
 
-            List<string> words = textBox1.Lines.ToList();
+            List<string> words = txtWordsToSolve.Lines.ToList();
             words.ForEach(x =>
             {
-                enigmaWord.AddWord(x);
+                if (!string.IsNullOrWhiteSpace(x)) enigmaWord.AddWord(x);
             });
 
-            enigmaWord.Solve();
+            var result = enigmaWord.Solve().Result;
+
+            if (result)
+            {
+                StringBuilder sb = new StringBuilder();
+
+                enigmaWord.WordsToSolve.ForEach(x =>
+                {
+                    sb.AppendLine(x.UncodedWord);
+                });
+
+                txtResults.Text = sb.ToString();
+
+                sb.Clear();
+                enigmaWord.GivenValues.ToList().ForEach(x =>
+                {
+                    sb.AppendLine($"{x.Key}-{x.Value}");
+                });
+                txtGivenValues.Text = sb.ToString();
+            }
 
 
+
+        }
+
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            enigmaWord.WordsToSolve.Clear();
+            enigmaWord.GivenValues.Clear();
+            txtGivenValues.Text = "";
+            txtWordsToSolve.Text = "";
 
         }
     }

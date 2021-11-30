@@ -20,16 +20,28 @@ namespace EnigmaWordSolver
             this.wordsToSolve = wordsToSolve ?? throw new ArgumentNullException(nameof(wordsToSolve));
         }
 
+        public Dictionary<int, string> GivenValues
+        {
+            get
+            {
+                return givenValues;
+            }
+        }
+
+
+
+
+
         public async Task<bool> Solve()
         {
             wordsToSolve.ForEach(wordToSolve =>
             {
-                string word = GetWordWithWildcards(wordToSolve);
+                wordToSolve.UncodedWord = GetWordWithWildcards(wordToSolve);
 
-                wordToSolve.IsMatched = IsMatchedWord(word);
+                wordToSolve.IsMatched = IsMatchedWord(wordToSolve.UncodedWord);
                 if (!wordToSolve.IsMatched)
                 {
-                    wordToSolve.PossibleMatches = CountPossibleMatches(word);
+                    wordToSolve.PossibleMatches = CountPossibleMatches(wordToSolve.UncodedWord);
                 }
             });
 
@@ -87,17 +99,20 @@ namespace EnigmaWordSolver
             int key = int.Parse(digits[i]);
 
             string pattern = WildCardToRegular(wordWithWildcards);
-            var matches = wordList.Where(word => word.Length == wordWithWildcards.Length && Regex.IsMatch(word, pattern)).ToList();
+            var lengthMatches = wordList.Where(word => word.Length == wordWithWildcards.Length);
+            var matches = lengthMatches.Where(word => Regex.IsMatch(word, pattern)).ToList();
 
             string possible = string.Empty;
             matches.ForEach(match =>
             {
                 string s = match.Substring(i, 1);
-                if (!possible.Contains(s))
+                if (!possible.Contains(s) && !givenValues.ContainsValue(s))
                 {
                     possible += s;
                 }
             });
+
+
 
             return new Tuple<int, string>(key, possible);
         }
@@ -116,31 +131,54 @@ namespace EnigmaWordSolver
             bool canContinue = true;
             while (canContinue)
             {
-                canContinue = false;
-
 
                 wordsToSolve = wordsToSolve.OrderBy(x => x.PossibleMatches).ToList();
                 WordToSolve wordToSolve = wordsToSolve.Where(wordToSolve => !wordToSolve.IsMatched && wordToSolve.PossibleMatches > 0).First();
                 Tuple<int, string> possible = GetPossibleValues(wordToSolve);
-                if (possible.Item2.Length > 0)
+
+                int key = possible.Item1;
+                string possibleLetters = possible.Item2;
+
+                while (possibleLetters.Length > 0)
                 {
-                    clonedGivenValues.Add(possible.Item1, possible.Item2);
-                    clonedPossibleValues.Remove(possible.Item1);
+                    string letter = possibleLetters.Substring(0, 1);
+                    possibleLetters = possibleLetters.Substring(1);
+
+                    if (clonedGivenValues.ContainsKey(key))
+                    {
+                        clonedGivenValues[key] = letter;
+                    }
+                    else
+                    {
+                        clonedGivenValues.Add(key, letter);
+                    }
+                    if (clonedPossibleValues.ContainsKey(key))
+                    {
+                        clonedPossibleValues.Remove(key);
+                    }
+
                     canContinue = true;
-                }
 
-                if (canContinue)
-                {
-                    Solver solver = new Solver(clonedGivenValues, clonedPossibleValues, wordList, wordsToSolve);
-                    result = await solver.Solve();
-                    int unsolveableWords = wordsToSolve.Where(x => !x.IsMatched && x.PossibleMatches < 1).Count();
+                    if (canContinue)
+                    {
+                        Solver solver = new Solver(clonedGivenValues, clonedPossibleValues, wordList, wordsToSolve);
+                        result = await solver.Solve();
+                        int unsolveableWords = wordsToSolve.Where(x => !x.IsMatched && x.PossibleMatches < 1).Count();
 
-                    if (result || unsolveableWords == 0) canContinue = false;
+                        if (unsolveableWords == 0) canContinue = false;
+                        if (result)
+                        {
+                            this.givenValues = solver.givenValues;
+                            return result;
+                        }
+
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    return false;
-                }
+                canContinue = false;
             }
             return result;
         }
