@@ -18,5 +18,6 @@
         public int Length { get; }
 
         public bool IsMatched { get; set; }
+
     }
 }

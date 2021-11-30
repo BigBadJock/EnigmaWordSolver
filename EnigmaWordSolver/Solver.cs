@@ -24,45 +24,17 @@ namespace EnigmaWordSolver
         {
             wordsToSolve.ForEach(wordToSolve =>
             {
-                List<string> s = wordToSolve.CodedWord.Split(',').ToList();
+                string word = GetWordWithWildcards(wordToSolve);
 
-                string word = string.Empty;
-
-                s.ForEach(x =>
+                wordToSolve.IsMatched = IsMatchedWord(word);
+                if (!wordToSolve.IsMatched)
                 {
-                    int i = int.Parse(x);
-                    if (givenValues.ContainsKey(i))
-                    {
-                        word += givenValues[i];
-                    }
-                    else
-                    {
-                        word += "?";
-                    }
-                });
-
-                wordToSolve.IsMatched = false;
-                if (!word.Contains("?"))
-                {
-                    if (wordList.Contains(word))
-                    {
-                        wordToSolve.IsMatched = true;
-                    }
+                    wordToSolve.PossibleMatches = CountPossibleMatches(word);
                 }
-                else
-                {
-                    string pattern = WildCardToRegular(word);
-                    wordToSolve.PossibleMatches = wordList
-                        .Where(word => word.Length == wordToSolve.Length && Regex.IsMatch(word, pattern))
-                        .Count();
-                }
-
             });
 
             int solvedWords = wordsToSolve.Where(x => x.IsMatched).Count();
-
             int unsolveableWords = wordsToSolve.Where(x => !x.IsMatched && x.PossibleMatches < 1).Count();
-
             bool result = result = solvedWords == wordsToSolve.Count;
 
             if (solvedWords < wordsToSolve.Count && unsolveableWords == 0)
@@ -73,30 +45,94 @@ namespace EnigmaWordSolver
             return result;
         }
 
+        private bool IsMatchedWord(string word)
+        {
+            return !word.Contains("?") && wordList.Contains(word);
+        }
+
+        private int CountPossibleMatches(string wordWithWildcards)
+        {
+            string pattern = WildCardToRegular(wordWithWildcards);
+            int result = wordList
+                .Where(word => word.Length == wordWithWildcards.Length && Regex.IsMatch(word, pattern))
+                .Count();
+            return result;
+        }
+
+        private string GetWordWithWildcards(WordToSolve wordToSolve)
+        {
+            List<string> digits = wordToSolve.CodedWord.Split(',').ToList();
+            string word = string.Empty;
+
+            digits.ForEach(x =>
+            {
+                int i = int.Parse(x);
+                if (givenValues.ContainsKey(i))
+                {
+                    word += givenValues[i];
+                }
+                else
+                {
+                    word += "?";
+                }
+            });
+            return word;
+        }
+
+        private Tuple<int, string> GetPossibleValues(WordToSolve wordToSolve)
+        {
+            List<string> digits = wordToSolve.CodedWord.Split(',').ToList();
+            string wordWithWildcards = GetWordWithWildcards(wordToSolve);
+            int i = wordWithWildcards.IndexOf('?');
+            int key = int.Parse(digits[i]);
+
+            string pattern = WildCardToRegular(wordWithWildcards);
+            var matches = wordList.Where(word => word.Length == wordWithWildcards.Length && Regex.IsMatch(word, pattern)).ToList();
+
+            string possible = string.Empty;
+            matches.ForEach(match =>
+            {
+                string s = match.Substring(i, 1);
+                if (!possible.Contains(s))
+                {
+                    possible += s;
+                }
+            });
+
+            return new Tuple<int, string>(key, possible);
+        }
+
+
+
+        // TODO - this loop isn't working correctly.
+        // TODO - can get possible matches which gives us possible letters - this should narrow down possible choices - optimisation
+        // TODO - can we find doubles and eliminate/demote unlikely double letters
+        // TODO - can we calculate frequency of digits and prioritise with most frequent letters
         private async Task<bool> GetNextIteration()
         {
             Dictionary<int, string> clonedGivenValues = givenValues.ToDictionary(entry => entry.Key, entry => entry.Value);
             Dictionary<int, string> clonedPossibleValues = possibleValues.ToDictionary(entry => entry.Key, entry => entry.Value);
-
+            bool result = false;
             bool canContinue = true;
             while (canContinue)
             {
                 canContinue = false;
-                foreach (int x in clonedPossibleValues.Keys.ToList())
+
+
+                wordsToSolve = wordsToSolve.OrderBy(x => x.PossibleMatches).ToList();
+                WordToSolve wordToSolve = wordsToSolve.Where(wordToSolve => !wordToSolve.IsMatched && wordToSolve.PossibleMatches > 0).First();
+                Tuple<int, string> possible = GetPossibleValues(wordToSolve);
+                if (possible.Item2.Length > 0)
                 {
-                    if (clonedPossibleValues[x].Length > 0)
-                    {
-                        string s = clonedPossibleValues[x].Substring(0, 1);
-                        clonedGivenValues.Add(x, s);
-                        clonedPossibleValues.Remove(x);
-                        canContinue = true;
-                        break;
-                    }
+                    clonedGivenValues.Add(possible.Item1, possible.Item2);
+                    clonedPossibleValues.Remove(possible.Item1);
+                    canContinue = true;
                 }
+
                 if (canContinue)
                 {
                     Solver solver = new Solver(clonedGivenValues, clonedPossibleValues, wordList, wordsToSolve);
-                    bool result = await solver.Solve();
+                    result = await solver.Solve();
                     int unsolveableWords = wordsToSolve.Where(x => !x.IsMatched && x.PossibleMatches < 1).Count();
 
                     if (result || unsolveableWords == 0) canContinue = false;
@@ -106,7 +142,7 @@ namespace EnigmaWordSolver
                     return false;
                 }
             }
-            return canContinue;
+            return result;
         }
 
         private static String WildCardToRegular(String value)

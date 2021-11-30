@@ -13,7 +13,7 @@ namespace EnigmaWordSolver.Tests
     public class EnigmaWordSolver_Tests
     {
 
-        EnigmaWordSolver solver;
+        EnigmaWord solver;
 
         [TestInitialize]
         public void Setup()
@@ -22,7 +22,7 @@ namespace EnigmaWordSolver.Tests
             {
                 "act",
                 "cat",
-                "cut",
+                //"cut",
                 "dog",
                 "tuc",
 
@@ -31,7 +31,7 @@ namespace EnigmaWordSolver.Tests
             var mockWordListLoader = new Mock<IWordListLoader>();
             mockWordListLoader.Setup(x => x.LoadWords()).Returns(wordList);
 
-            this.solver = new EnigmaWordSolver(mockWordListLoader.Object);
+            this.solver = new EnigmaWord(mockWordListLoader.Object);
         }
 
         [TestCleanup]
@@ -200,12 +200,13 @@ namespace EnigmaWordSolver.Tests
             solver.AddGivenValue(3, "T");
 
             solver.AddWord("1,2,3");
-            solver.AddWord("3,2,1");
+            solver.AddWord("3,4,1");
 
             bool result = await solver.Solve();
 
             Assert.IsTrue(result);
         }
+
 
     }
 }

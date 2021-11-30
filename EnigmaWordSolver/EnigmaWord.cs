@@ -6,13 +6,13 @@ using System.Text.RegularExpressions;
 
 namespace EnigmaWordSolver
 {
-    public class EnigmaWordSolver
+    public class EnigmaWord : IEnigmaWord
     {
         Dictionary<int, string> givenValues = null;
         List<string> wordList = null;
         private readonly IWordListLoader wordListLoader;
 
-        public EnigmaWordSolver(IWordListLoader wordListLoader)
+        public EnigmaWord(IWordListLoader wordListLoader)
         {
             this.givenValues = new Dictionary<int, string>();
             this.PossibleValues = new Dictionary<int, string>();
